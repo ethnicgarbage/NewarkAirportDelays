@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Staffing Issues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Figtree", Arial, Helvetica, sans-serif; }
+body {
+  --navy: #122f5e;
+  --red: #b22543;
+  --white: #f0f2f4;
+  --soft-blue: #dde4f0;
+  --soft-red: #f5dde2;
+  --ink: #0d1f3c;
+  --muted: #3d5278;
+  background: linear-gradient(135deg, #dde4f0 0%, #f0f2f4 45%, #f5dde2 100%);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 28px;
+}
+.slide {
+  width: 100%;
+  max-width: 1380px;
+  min-height: 92vh;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--white) 0%, #e8ecf2 100%);
+  border: 2px solid #c0cde6;
+  border-top: 10px solid var(--red);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(18, 47, 94, 0.12);
+  padding: 34px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(178,37,67,0.08), transparent 28%),
+    radial-gradient(circle at 80% 80%, rgba(18,47,94,0.10), transparent 32%);
+  pointer-events: none;
+}
+.kicker {
+  position: relative;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+.brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  justify-content: center;
+}
+.brand img {
+  width: 78px;
+  height: auto;
+  display: block;
+}
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.95;
+}
+.wordmark .top {
+  color: var(--navy);
+  font-size: clamp(2.8rem, 5vw, 5.2rem);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.03em;
+}
+.wordmark .bottom {
+  color: var(--navy);
+  font-size: clamp(1.55rem, 3vw, 3rem);
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.015em;
+  margin-top: 8px;
+}
+.title {
+  position: relative;
+  z-index: 1;
+  margin-top: 28px;
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  line-height: 1.05;
+  color: var(--navy);
+  font-weight: 800;
+  text-align: center;
+}
+.sub {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  font-size: 1.02rem;
+  color: var(--muted);
+  text-align: center;
+}
+.accent {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  filter: blur(4px);
+  opacity: 0.16;
+}
+.accent.left {
+  background: var(--red);
+  left: -50px;
+  bottom: -40px;
+}
+.accent.right {
+  background: var(--navy);
+  right: -40px;
+  top: -40px;
+}
+</style>
+</head>
+<body>
+  <div class="slide">
+    <div class="accent left"></div>
+    <div class="accent right"></div>
+
+    <div class="brand">
+      <img src="EWR_torch_cropped.png" alt="Newark Liberty torch logo">
+      <div class="wordmark" aria-label="Newark Liberty International Airport">
+        <div class="top">Newark Liberty</div>
+        <div class="bottom">International Airport</div>
+      </div>
+    </div>
+
+    <div class="title">Staffing Issues</div>
+  </div>
+</body>
+</html>

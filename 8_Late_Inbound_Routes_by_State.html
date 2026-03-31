@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EWR – Late Inbound Route Delays</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Figtree", Arial, Helvetica, sans-serif;
+    }
+
+    body {
+  --navy: #122f5e;
+  --red: #b22543;
+  --white: #f0f2f4;
+  --soft-blue: #dde4f0;
+  --soft-red: #f5dde2;
+  --ink: #0d1f3c;
+  --muted: #3d5278;
+  background: linear-gradient(135deg, #dde4f0 0%, #f0f2f4 45%, #f5dde2 100%);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 28px;
+}
+
+    .slide {
+  width: 100%;
+  max-width: 1380px;
+  min-height: 92vh;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--white) 0%, #e8ecf2 100%);
+  border: 2px solid #c0cde6;
+  border-top: 10px solid var(--red);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(18, 47, 94, 0.12);
+  padding: 34px 40px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  gap: 18px;
+}
+    .slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(178,37,67,0.05), transparent 28%),
+    radial-gradient(circle at 80% 80%, rgba(18,47,94,0.06), transparent 32%);
+  pointer-events: none;
+}
+
+    .slide h2 {
+  font-size: 2rem;
+  color: var(--navy);
+  font-weight: 800;
+  line-height: 1.08;
+  text-align: left;
+  margin: 0;
+}
+
+    /* ── Layout: map left, ranked list right ── */
+    .content-area {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 18px;
+      flex: 1;
+      min-height: 0;
+      align-items: stretch;
+      max-height: 500px;
+    }
+
+    .chart-box {
+      background: rgba(255,255,255,0.58);
+      border: 1px solid #cad5e8;
+      border-radius: 20px;
+      padding: 14px 14px 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      position: relative;
+    }
+
+    .chart-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--navy);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .chart-note {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    #routeMap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      height: 400px;
+      max-height: 400px;
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+
+    /* ── Rankings panel ── */
+    .rankings-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+    }
+
+    .rankings-panel .chart-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--navy);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .state-list {
+      flex: 1;
+      max-height: 600px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .state-row {
+      display: grid;
+      grid-template-columns: 22px 38px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    .state-row:hover {
+      background: rgba(18,47,94,0.05);
+    }
+
+    .state-row .rank {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .state-row .code {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--navy);
+      background: var(--soft-blue);
+      border-radius: 5px;
+      padding: 2px 5px;
+      text-align: center;
+    }
+
+    .state-row .bar-wrap {
+      background: rgba(18,47,94,0.07);
+      border-radius: 3px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .state-row .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #122f5e, #3a6bbf);
+    }
+
+    .state-row.top-3 .bar-fill {
+      background: linear-gradient(90deg, #b22543, #e0607c);
+    }
+
+    .state-row .minutes {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .state-row.top-3 .minutes { color: var(--red); }
+
+    /* scrollbar */
+    .state-list::-webkit-scrollbar { width: 4px; }
+    .state-list::-webkit-scrollbar-track { background: transparent; }
+    .state-list::-webkit-scrollbar-thumb { background: #c0cde6; border-radius: 2px; }
+
+    /* ── Slide label ── */
+    .slide-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--red);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    /* ── Replay button ── */
+    .replay-btn {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 10;
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 13px;
+      font-family: "Figtree", Arial, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .replay-btn:hover { background: var(--red); }
+
+    @media (max-width: 900px) {
+      .content-area {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 18px;
+      flex: 1;
+      min-height: 0;
+      align-items: stretch;
+      max-height: 420px;
+    }
+      .rankings-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+    }
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <h2>Late inbound flights from Orlando, Fort Lauderdale, Charlotte, Atlanta, Chicago, and Los Angeles cause the most outbound delays</h2>
+
+    <div class="content-area">
+      <div class="chart-box">
+        <div class="chart-title">problem routes — late-inbound delay contribution by departure airport</div>
+        <div id="routeMap"></div>
+        <button id="replayBtn" class="replay-btn">&#8635; Replay</button>
+      </div>
+
+      <div class="chart-box rankings-panel">
+        <div class="chart-title">Top states by delay minutes</div>
+        <div class="state-list" id="stateList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const stateCodes    = ["FL","NC","GA","CA","IL","MI","KY","TX","PA","OH","MN","SC","IN","WA","MA","AZ","NY","ME","TN","UT","OR","WI","NV","MO","VA","VT","LA","RI","NH","DC","IA","AL","AR","SD","NE"];
+    const stateMinutes  = [288401,170356,137900,127758,110800,99963,82529,72361,51475,47919,46545,46459,46272,39955,39658,36130,28742,25200,22999,20769,19840,18571,12344,12229,12023,8478,6846,6806,5823,5761,984,283,112,6,0];
+    const stateNames    = {FL:"Florida",NC:"N. Carolina",GA:"Georgia",CA:"California",IL:"Illinois",MI:"Michigan",KY:"Kentucky",TX:"Texas",PA:"Pennsylvania",OH:"Ohio",MN:"Minnesota",SC:"S. Carolina",IN:"Indiana",WA:"Washington",MA:"Massachusetts",AZ:"Arizona",NY:"New York",ME:"Maine",TN:"Tennessee",UT:"Utah",OR:"Oregon",WI:"Wisconsin",NV:"Nevada",MO:"Missouri",VA:"Virginia",VT:"Vermont",LA:"Louisiana",RI:"Rhode Island",NH:"New Hampshire",DC:"D.C.",IA:"Iowa",AL:"Alabama",AR:"Arkansas",SD:"S. Dakota",NE:"Nebraska"};
+
+    /* ── Ranked list ── */
+    const maxMin = stateMinutes[0];
+    const listEl = document.getElementById('stateList');
+    stateCodes.forEach(function(code, i) {
+      if (stateMinutes[i] === 0) return;
+      var pct = (stateMinutes[i] / maxMin * 100).toFixed(1);
+      var mins = stateMinutes[i].toLocaleString();
+      var isTop = i < 3;
+      listEl.innerHTML += '<div class="state-row ' + (isTop ? 'top-3' : '') + '">' +
+        '<div class="rank">' + (i + 1) + '</div>' +
+        '<div class="code">' + code + '</div>' +
+        '<div class="bar-wrap"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="minutes">' + (stateMinutes[i]/1000).toFixed(0) + 'k</div>' +
+        '</div>';
+    });
+
+    /* ── Airport data ── */
+    var EWR = { code: 'EWR', name: 'Newark Liberty Intl', lat: 40.6895, lon: -74.1745 };
+    var ORIGINS = [
+      { code: 'ORD', name: "O'Hare Intl (Chicago)",            lat: 41.9742, lon: -87.9073, state:'IL', delayMin:110800, color:'#b22543' },
+      { code: 'FLL', name: 'Fort Lauderdale-Hollywood Intl',   lat: 26.0726, lon: -80.1527, state:'FL', delayMin:288401, color:'#b22543', note:'FL total (incl. MCO)' },
+      { code: 'MCO', name: 'Orlando Intl',                     lat: 28.4312, lon: -81.3081, state:'FL', delayMin:288401, color:'#b22543', note:'FL total (incl. FLL)' },
+      { code: 'CLT', name: 'Charlotte Douglas Intl',           lat: 35.2140, lon: -80.9431, state:'NC', delayMin:170356, color:'#b22543' },
+      { code: 'ATL', name: 'Hartsfield-Jackson Atlanta Intl',  lat: 33.6367, lon: -84.4281, state:'GA', delayMin:137900, color:'#b22543' },
+      { code: 'LAX', name: 'Los Angeles Intl',                 lat: 33.9425, lon:-118.4081, state:'CA', delayMin:127758, color:'#b22543' },
+    ];
+
+    /* ── Animation state ── */
+    var N_PTS = 80;
+    var TICK_MS = 30;
+    var STAGGER = 12;
+
+    var animTick = 0, animTimer = null;
+
+    function runAnimStep() {
+      var lats = [], lons = [];
+      ORIGINS.forEach(function(o, i) {
+        var rt = Math.max(0, animTick - i * STAGGER);
+        var n  = Math.min(N_PTS, rt);
+        var rLats = [], rLons = [];
+        for (var j = 0; j <= n; j++) {
+          var t = j / N_PTS;
+          rLats.push(o.lat + (EWR.lat - o.lat) * t);
+          rLons.push(o.lon + (EWR.lon - o.lon) * t);
+        }
+        lats.push(rLats);
+        lons.push(rLons);
+      });
+      Plotly.restyle('routeMap', { lat: lats, lon: lons }, [2,3,4,5,6,7]);
+      animTick++;
+      var maxTick = N_PTS + STAGGER * (ORIGINS.length - 1) + 5;
+      if (animTick <= maxTick) {
+        animTimer = setTimeout(runAnimStep, TICK_MS);
+      }
+    }
+
+    function startAnim() {
+      clearTimeout(animTimer);
+      animTick = 0;
+      Plotly.restyle('routeMap', {
+        lat: ORIGINS.map(function(){ return []; }),
+        lon: ORIGINS.map(function(){ return []; })
+      }, [2,3,4,5,6,7]);
+      setTimeout(runAnimStep, 300);
+    }
+
+    /* ── Load Plotly and render ── */
+    var s = document.createElement('script');
+    s.src = 'https://cdn.plot.ly/plotly-2.30.0.min.js';
+    s.onload = function() {
+
+      /* Trace 0: choropleth */
+      var traceChoro = {
+        type: 'choropleth',
+        locationmode: 'USA-states',
+        locations: stateCodes,
+        z: stateMinutes,
+        colorscale: [
+          [0,    '#dde4f0'],
+          [0.15, '#b0c1e0'],
+          [0.4,  '#6e8fbd'],
+          [0.7,  '#3a6195'],
+          [1,    '#122f5e']
+        ],
+        marker: {
+          line: { color: '#ffffff', width: 1.2 }
+        },
+        colorbar: {
+          title: { text: 'Delay<br>minutes', font: { size: 11, color: '#3d5278' } },
+          thickness: 12,
+          len: 0.75,
+          outlinewidth: 0,
+          tickfont: { size: 10, color: '#3d5278' },
+          tickformat: ',d'
+        },
+        hovertemplate: '<b>%{location}</b><br>Late-aircraft delay: <b>%{z:,} min</b><extra></extra>'
+      };
+
+      /* Trace 1: airport dots */
+      var traceDots = {
+        type: 'scattergeo',
+        mode: 'markers',
+        lat: [EWR.lat].concat(ORIGINS.map(function(o){ return o.lat; })),
+        lon: [EWR.lon].concat(ORIGINS.map(function(o){ return o.lon; })),
+        marker: {
+          size: [14, 10, 10, 10, 10, 10, 10],
+          color: ['#b22543'].concat(ORIGINS.map(function(o){ return o.color; })),
+          line: { color: '#ffffff', width: 1.5 }
+        },
+        customdata: [
+          ['EWR', 'Newark Liberty Intl', 'Hub Airport', '']
+        ].concat(ORIGINS.map(function(o){
+          return [o.code, o.name, (o.delayMin/1000).toFixed(0)+'k min total', o.note||''];
+        })),
+        hovertemplate: '<b>%{customdata[0]}</b> — %{customdata[1]}<br>Late-inbound delay: <b>%{customdata[2]}</b><br><i>%{customdata[3]}</i><extra></extra>',
+        showlegend: false
+      };
+
+      /* Traces 2–7: route lines (one per origin, start empty) */
+      var routeTraces = ORIGINS.map(function(o) {
+        return {
+          type: 'scattergeo',
+          mode: 'lines',
+          lat: [],
+          lon: [],
+          line: { color: o.color, width: 2.5 },
+          hoverinfo: 'none',
+          showlegend: false
+        };
+      });
+
+      var allTraces = [traceChoro, traceDots].concat(routeTraces);
+
+      var layout = {
+        margin: { l:0, r:0, t:0, b:0 },
+        geo: {
+          scope: 'usa',
+          projection: { type: 'albers usa' },
+          bgcolor: 'rgba(0,0,0,0)',
+          lakecolor: '#eef2f8',
+          showlakes: true,
+          landcolor: '#f4f6fb',
+          subunitcolor: '#ffffff',
+          showcoastlines: false,
+          framecolor: 'rgba(0,0,0,0)'
+        },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false
+      };
+
+      var config = {
+        responsive: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+        displayModeBar: 'hover'
+      };
+
+      Plotly.newPlot('routeMap', allTraces, layout, config);
+
+      /* Auto-play animation */
+      startAnim();
+    };
+    document.head.appendChild(s);
+
+    /* Wire replay button */
+    document.getElementById('replayBtn').addEventListener('click', startAnim);
+  </script>
+</body>
+</html>

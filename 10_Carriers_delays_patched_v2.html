@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airline Drilldown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── All original template styles preserved exactly ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Figtree", Arial, Helvetica, sans-serif; }
+
+    body {
+      --navy: #122f5e; --red: #b22543; --white: #f0f2f4;
+      --soft-blue: #dde4f0; --soft-red: #f5dde2; --ink: #0d1f3c; --muted: #3d5278;
+      background: linear-gradient(135deg, #dde4f0 0%, #f0f2f4 45%, #f5dde2 100%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    .slide {
+      width: 100%; max-width: 1380px; min-height: 92vh; margin: 0 auto;
+      background: linear-gradient(180deg, var(--white) 0%, #e8ecf2 100%);
+      border: 2px solid #c0cde6; border-top: 10px solid var(--red); border-radius: 24px;
+      box-shadow: 0 16px 40px rgba(18,47,94,0.12);
+      padding: 34px 40px;
+      display: flex; flex-direction: column; overflow: hidden; position: relative; gap: 18px;
+    }
+    .slide h2  {font-size: 2rem;
+  color: var(--navy);
+  font-weight: 800;
+  line-height: 1.08;
+  text-align: left;
+  margin: 0;
+}
+
+    .kpi-row   { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi-card  { background: var(--soft-blue); border: 1px solid #c0cde6; border-radius: 12px; padding: 16px; text-align: center; }
+    .kpi-card .value   { font-size: 1.8rem; font-weight: 700; color: var(--navy); }
+    .kpi-card .value.red { color: var(--red); }
+    .kpi-card .label   { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-top: 4px; }
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+    .chart-box { background: var(--white); border: 1px solid #c0cde6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; }
+    .chart-box .chart-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--navy); margin-bottom: 12px; }
+    .accent    { color: var(--red); }
+
+    /* ── Slide label — matches master shell ── */
+    .slide-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--red); margin-bottom: 10px; font-weight: 700; }
+
+    /* ══════════════════════════════════════
+       Visualization-specific additions only
+       ══════════════════════════════════════ */
+
+    .viz-section { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 7px; }
+
+    /* Controls row */
+    .viz-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .toggle-btn {
+      background: var(--navy); color: var(--white); border: none; border-radius: 8px;
+      padding: 7px 12px; font-family: "Figtree",Arial,sans-serif; font-size: 0.76rem;
+      font-weight: 600; cursor: pointer; transition: background 0.18s, transform 0.12s; white-space: nowrap; flex-shrink: 0;
+    }
+    .toggle-btn:hover  { background: var(--red); }
+    .toggle-btn.active { background: var(--red); }
+
+    .back-btn {
+      background: transparent; color: var(--navy); border: 1.5px solid var(--navy); border-radius: 8px;
+      padding: 6px 11px; font-family: "Figtree",Arial,sans-serif; font-size: 0.76rem;
+      font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0;
+      display: none;
+    }
+    .back-btn:hover { background: var(--navy); color: var(--white); }
+
+    .drill-label {
+      font-size: 0.82rem; font-weight: 700; color: var(--navy); white-space: nowrap; display: none;
+    }
+    .drill-label .drill-sub { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 0.74rem; }
+
+    .axis-hint { font-size: 0.67rem; color: var(--muted); white-space: nowrap; }
+    .chart-title-label { margin-left: auto; font-size: 0.72rem; font-weight: 600; color: var(--navy); white-space: nowrap; opacity: 0.85; }
+
+    /* Chart area: Y-axis rail + scrollable panels */
+    .viz-chart-area { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+    .y-axis-rail {
+      width: 26px; flex-shrink: 0; position: relative;
+      border-right: 1px solid rgba(192,205,230,0.8); margin-right: 5px; overflow: visible;
+      display: none;
+    }
+    .tick-label {
+      position: absolute; right: 5px; font-size: 8px;
+      font-family: "Figtree",Arial,sans-serif; color: #3d5278;
+      transform: translateY(-50%); white-space: nowrap;
+    }
+
+    .panels-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; min-height: 0; padding-bottom: 3px; }
+    .panels-scroll::-webkit-scrollbar { height: 4px; }
+    .panels-scroll::-webkit-scrollbar-track { background: transparent; }
+    .panels-scroll::-webkit-scrollbar-thumb { background: #c0cde6; border-radius: 2px; }
+
+    /* ── All-airlines line view ── */
+    .panels-row     { display: flex; gap: 6px; min-width: 100%; width: 100%; align-items: flex-start; }
+    .carrier-panel  { display: flex; flex-direction: column; align-items: center; cursor: pointer; flex: 1 1 0; min-width: 0; }
+    .carrier-panel .chart-wrap { transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s; }
+    .carrier-panel:hover .chart-wrap {
+      border-color: #8aa4d0; box-shadow: 0 3px 12px rgba(18,47,94,0.16); transform: translateY(-2px);
+    }
+    .panel-header { font-size: 0.9rem; font-weight: 700; color: var(--navy); text-align: center; margin-bottom: 3px; white-space: nowrap; }
+    .chart-wrap   { background: var(--white); border: 1px solid #c0cde6; border-radius: 9px; padding: 5px 3px 3px 3px; display: flex; align-items: center; justify-content: center; width: 100%; }
+
+    /* ── Drill-down line view ── */
+    .drill-panels-row { display: flex; gap: 8px; min-width: max-content; align-items: flex-start; }
+    .drill-class-panel { display: flex; flex-direction: column; align-items: center; }
+    .drill-class-panel .panel-header { font-size: 0.72rem; font-weight: 700; text-align: center; margin-bottom: 3px; white-space: nowrap; }
+    .drill-class-panel .chart-wrap { border-radius: 11px; padding: 6px 5px 4px 5px; }
+
+    /* ── Fullscreen chart containers (column & drill-column) ── */
+    #allColumnView, #drillColumnView {
+      display: none; position: relative; width: 100%;
+    }
+
+    #allLineView, #drillLineView {
+      display: none;
+    }
+
+    /* Footnote */
+    .footnote { font-size: 1rem; color: var(--muted); flex-shrink: 0; line-height: 1.4; }
+
+    /* ── Key Areas of Concern stats bar ── */
+    .key-stats {
+      flex-shrink: 0; margin-top: 9px;
+      border: 1px solid #c0cde6; border-radius: 12px;
+      background: linear-gradient(135deg, var(--soft-blue) 0%, var(--white) 50%, var(--soft-red) 100%);
+      padding: 7px 16px 8px 16px;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .key-stats-row {
+      display: flex; align-items: stretch; flex: 1;
+    }
+    .stat-item {
+      flex: 1; display: flex; align-items: center; gap: 11px;
+      padding: 0 14px; border-right: 1px solid rgba(192,205,230,0.7);
+    }
+    .stat-item:first-child { padding-left: 2px; }
+    .stat-item:last-child  { border-right: none; }
+    .stat-label {
+      font-size: 0.67rem; font-weight: 600; color: var(--navy);
+      line-height: 1.3; text-align: right; flex-shrink: 0;
+    }
+    .stat-label .stat-sublabel {
+      display: block; font-size: 0.6rem; font-weight: 400; color: var(--muted);
+    }
+    .stat-value {
+      font-size: 2.55rem; font-weight: 700; color: var(--red); line-height: 1; white-space: nowrap;
+    }
+    .stat-unit {
+      font-size: 0.65rem; font-weight: 500; color: var(--muted); margin-left: 2px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <h2>Non-Hub Carriers &amp; Wide-Body Fleets Push Carrier Delays Highest</span></h2>
+
+    <div class="viz-section">
+
+      <div class="viz-controls">
+        <!-- toggle is top-left -->
+        <button class="toggle-btn" id="typeToggleBtn">&#8764; Line Chart</button>
+        <button class="back-btn"   id="backBtn">&#8592; All Airlines</button>
+        <div class="drill-label"   id="drillLabel"></div>
+        <div class="axis-hint"     id="axisHint"></div>
+        <div class="chart-title-label">Avg Carrier-Caused Delay by Airline, 2022&ndash;2025</div>
+      </div>
+
+      <div class="viz-chart-area">
+        <div class="y-axis-rail" id="yAxisRail"></div>
+        <div class="panels-scroll" id="panelsScroll">
+          <!-- 1. All airlines — column (default) -->
+          <div id="allColumnView"></div>
+          <!-- 2. All airlines — line small multiples -->
+          <div id="allLineView" class="panels-row"></div>
+          <!-- 3. Drill: single airline — column -->
+          <div id="drillColumnView"></div>
+          <!-- 4. Drill: single airline — line small multiples -->
+          <div id="drillLineView" class="drill-panels-row"></div>
+        </div>
+      </div>
+
+      <div class="footnote">
+        * Delay by Carrier (Minutes) — airline-controllable causes only. Averages include all departures; non-delayed = 0 min.
+        &nbsp;&nbsp;American Small NB 2025: 23.6 min avg (n=41 flights).
+      </div>
+    </div>
+
+    <div class="key-stats">
+      <div class="key-stats-row">
+
+        <div class="stat-item">
+          <div class="stat-label">Delta Air Lines<span class="stat-sublabel">All aircraft classes</span></div>
+          <div class="stat-value">8.4<span class="stat-unit">min avg</span></div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-label">American Airlines<span class="stat-sublabel">Small Narrow-body</span></div>
+          <div class="stat-value">9.7<span class="stat-unit">min avg</span></div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-label">United Airlines<span class="stat-sublabel">Wide-body aircraft</span></div>
+          <div class="stat-value">10.8<span class="stat-unit">min avg</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ══ Constants ══ */
+    var YEARS     = ['2022','2023','2024','2025'];
+    var YR_LABELS = ["'22","'23","'24","'25"];
+    var C_YMAX    = 15;
+    var CL_YMAX   = 25;
+    var C_TICKS   = [0, 5, 10, 15];
+    var CL_TICKS  = [0, 5, 10, 15, 20, 25];
+
+    var CARRIERS = [
+      { name: 'Alaska Airlines',   short: 'Alaska',   color: '#0E7490' },
+      { name: 'American Airlines', short: 'American', color: '#C41230' },
+      { name: 'Delta Air Lines',   short: 'Delta',    color: '#1B2A6B' },
+      { name: 'Endeavor Air',      short: 'Endeavor', color: '#7C3AED' },
+      { name: 'Envoy Air',         short: 'Envoy',    color: '#0891B2' },
+      { name: 'JetBlue Airways',   short: 'JetBlue',  color: '#0033A0' },
+      { name: 'Republic Airways',  short: 'Republic', color: '#16A34A' },
+      { name: 'Spirit Airlines',   short: 'Spirit',   color: '#D97706' },
+      { name: 'United Airlines',   short: 'United',   color: '#1D4ED8' }
+    ];
+
+    var CLASS_SHORTS = {
+      'Regional Jet':         'Regional Jet',
+      'Small Narrow-body':    'Small NB',
+      'Standard Narrow-body': 'Std NB',
+      'Large Narrow-body':    'Large NB',
+      'Wide-body':            'Wide-body'
+    };
+
+    /* ══ Data: Delay by Carrier (Minutes) col 13 ══ */
+    var carrierYearData = {
+      'Alaska Airlines':   { '2022':{'avg':2.41, 'count':3273},  '2023':{'avg':3.33, 'count':2947},  '2024':{'avg':2.25, 'count':3184},  '2025':{'avg':3.51, 'count':2985}  },
+      'American Airlines': { '2022':{'avg':6.95, 'count':8162},  '2023':{'avg':7.04, 'count':7414},  '2024':{'avg':7.72, 'count':6665},  '2025':{'avg':4.94, 'count':5773}  },
+      'Delta Air Lines':   { '2022':{'avg':8.65, 'count':4874},  '2023':{'avg':7.60, 'count':6178},  '2024':{'avg':8.71, 'count':6426},  '2025':{'avg':8.53, 'count':6334}  },
+      'Endeavor Air':      { '2022':{'avg':4.52, 'count':1702},  '2023':{'avg':2.86, 'count':1675},  '2024':{'avg':4.09, 'count':1570},  '2025':{'avg':2.46, 'count':1347}  },
+      'Envoy Air':         { '2022':{'avg':0.72, 'count':218},   '2023':{'avg':2.39, 'count':588},   '2024':{'avg':4.80, 'count':910},   '2025':{'avg':2.48, 'count':1032}  },
+      'JetBlue Airways':   { '2022':{'avg':10.95,'count':7456},  '2023':{'avg':8.14, 'count':6520},  '2024':{'avg':7.34, 'count':5436},  '2025':{'avg':5.97, 'count':5174}  },
+      'Republic Airways':  { '2022':{'avg':5.74, 'count':28178}, '2023':{'avg':3.07, 'count':27809}, '2024':{'avg':2.62, 'count':22678}, '2025':{'avg':3.27, 'count':18008} },
+      'Spirit Airlines':   { '2022':{'avg':3.31, 'count':6565},  '2023':{'avg':5.15, 'count':8309},  '2024':{'avg':3.84, 'count':10042}, '2025':{'avg':4.45, 'count':8538}  },
+      'United Airlines':   { '2022':{'avg':7.65, 'count':57942}, '2023':{'avg':7.60, 'count':69364}, '2024':{'avg':5.09, 'count':67596}, '2025':{'avg':5.08, 'count':61843} }
+    };
+
+    var carrierClassYearData = {
+      'Alaska Airlines': {
+        'Large Narrow-body':    { '2022':{'avg':2.23,'count':2944},  '2023':{'avg':3.56,'count':2268},  '2024':{'avg':2.14,'count':2677},  '2025':{'avg':3.51,'count':2717}  },
+        'Standard Narrow-body': { '2022':{'avg':3.99,'count':329},   '2023':{'avg':2.53,'count':679},   '2024':{'avg':2.85,'count':507},   '2025':{'avg':3.51,'count':268}   }
+      },
+      'American Airlines': {
+        'Large Narrow-body':    { '2022':{'avg':10.35,'count':2066}, '2023':{'avg':5.98,'count':2313},  '2024':{'avg':9.27,'count':1892},  '2025':{'avg':5.24,'count':1287}  },
+        'Small Narrow-body':    { '2022':{'avg':7.82, 'count':315},  '2023':{'avg':15.15,'count':248},  '2024':{'avg':3.55,'count':218},   '2025':{'avg':23.63,'count':41}   },
+        'Standard Narrow-body': { '2022':{'avg':5.69, 'count':5781}, '2023':{'avg':7.13,'count':4853},  '2024':{'avg':7.28,'count':4555},  '2025':{'avg':4.67,'count':4445}  }
+      },
+      'Delta Air Lines': {
+        'Large Narrow-body':    { '2022':{'avg':8.73,'count':584},   '2023':{'avg':8.15,'count':778},   '2024':{'avg':6.87,'count':2437},  '2025':{'avg':7.67,'count':2786}  },
+        'Small Narrow-body':    { '2022':{'avg':9.09,'count':2539},  '2023':{'avg':6.98,'count':3933},  '2024':{'avg':9.70,'count':3618},  '2025':{'avg':9.80,'count':2606}  },
+        'Standard Narrow-body': { '2022':{'avg':7.97,'count':1751},  '2023':{'avg':8.97,'count':1467},  '2024':{'avg':11.07,'count':371},  '2025':{'avg':7.54,'count':942}   }
+      },
+      'Endeavor Air': {
+        'Regional Jet': { '2022':{'avg':4.52,'count':1702}, '2023':{'avg':2.86,'count':1675}, '2024':{'avg':4.09,'count':1570}, '2025':{'avg':2.46,'count':1347} }
+      },
+      'Envoy Air': {
+        'Regional Jet': { '2022':{'avg':0.72,'count':218}, '2023':{'avg':2.39,'count':588}, '2024':{'avg':4.80,'count':910}, '2025':{'avg':2.48,'count':1032} }
+      },
+      'JetBlue Airways': {
+        'Large Narrow-body':    { '2022':{'avg':7.93,'count':1965},  '2023':{'avg':6.73,'count':1589},  '2024':{'avg':4.13,'count':1015},  '2025':{'avg':5.18,'count':963}   },
+        'Regional Jet':         { '2022':{'avg':9.51,'count':974},   '2023':{'avg':6.69,'count':395},   '2024':{'avg':2.75,'count':4},     '2025':null },
+        'Small Narrow-body':    { '2022':null,                        '2023':{'avg':9.50,'count':2},     '2024':{'avg':7.27,'count':98},    '2025':{'avg':5.66,'count':38}    },
+        'Standard Narrow-body': { '2022':{'avg':12.57,'count':4517}, '2023':{'avg':8.76,'count':4534},  '2024':{'avg':8.11,'count':4319},  '2025':{'avg':6.16,'count':4173}  }
+      },
+      'Republic Airways': {
+        'Regional Jet': { '2022':{'avg':5.74,'count':28178}, '2023':{'avg':3.07,'count':27809}, '2024':{'avg':2.62,'count':22678}, '2025':{'avg':3.27,'count':18008} }
+      },
+      'Spirit Airlines': {
+        'Large Narrow-body':    { '2022':{'avg':2.91,'count':2675},  '2023':{'avg':3.75,'count':1874},  '2024':{'avg':4.14,'count':1766},  '2025':{'avg':5.44,'count':2483}  },
+        'Small Narrow-body':    { '2022':{'avg':6.29,'count':73},    '2023':{'avg':2.86,'count':78},    '2024':{'avg':4.98,'count':102},   '2025':{'avg':0.00,'count':5}     },
+        'Standard Narrow-body': { '2022':{'avg':3.54,'count':3817},  '2023':{'avg':5.59,'count':6357},  '2024':{'avg':3.77,'count':8174},  '2025':{'avg':4.06,'count':6050}  }
+      },
+      'United Airlines': {
+        'Large Narrow-body':    { '2022':{'avg':7.78,'count':15066}, '2023':{'avg':8.14,'count':21163}, '2024':{'avg':5.49,'count':32829}, '2025':{'avg':5.26,'count':34104} },
+        'Small Narrow-body':    { '2022':{'avg':7.27,'count':12709}, '2023':{'avg':7.05,'count':13307}, '2024':{'avg':4.99,'count':13175}, '2025':{'avg':5.40,'count':10332} },
+        'Standard Narrow-body': { '2022':{'avg':6.82,'count':23820}, '2023':{'avg':6.59,'count':29523}, '2024':{'avg':3.43,'count':17632}, '2025':{'avg':3.30,'count':13702} },
+        'Wide-body':            { '2022':{'avg':11.26,'count':6347}, '2023':{'avg':12.38,'count':5371}, '2024':{'avg':9.46,'count':3960},  '2025':{'avg':9.19,'count':3705}  }
+      }
+    };
+
+    /* ══ Helpers ══ */
+    function weightedAvg(yearObj) {
+      var td = 0, tc = 0;
+      YEARS.forEach(function(y) {
+        if (yearObj && yearObj[y]) { td += yearObj[y].avg * yearObj[y].count; tc += yearObj[y].count; }
+      });
+      return { avg: tc > 0 ? Math.round(td / tc * 100) / 100 : 0, count: tc };
+    }
+
+    function makeDataset(avgs, counts, color, yMax) {
+      var capped = avgs.map(function(v) { return v !== null ? Math.min(v, yMax) : null; });
+      var ptClrs = avgs.map(function(v) { return (v !== null && v > yMax) ? '#ef4444' : color; });
+      return {
+        data: capped, _rawAvg: avgs, _counts: counts,
+        borderColor: color, backgroundColor: color + '18', fill: true,
+        tension: 0.3, borderWidth: 2,
+        pointRadius: 4, pointHoverRadius: 7,
+        pointBackgroundColor: ptClrs, pointBorderColor: '#fff', pointBorderWidth: 1.5
+      };
+    }
+
+    var TT = {
+      titleFont:    { family: 'Figtree,Arial,sans-serif', size: 11, weight: '600' },
+      bodyFont:     { family: 'Figtree,Arial,sans-serif', size: 10 },
+      backgroundColor: 'rgba(13,31,60,0.92)', titleColor: '#f0f2f4', bodyColor: '#dde4f0',
+      padding: 8, cornerRadius: 6, displayColors: false
+    };
+
+    function lineOpts(yMax, xSz, showY) {
+      return {
+        responsive: false, animation: { duration: 260 },
+        layout: { padding: { top: 6, right: 4, bottom: 0, left: showY ? 0 : 4 } },
+        scales: {
+          y: {
+            display: showY ? true : false,
+            min: 0, max: yMax,
+            ticks: { font: { size: 15, family: 'Figtree,Arial,sans-serif' }, color: '#3d5278', maxTicksLimit: 4 },
+            grid: { color: 'rgba(192,205,230,0.4)', lineWidth: 0.5 }, border: { display: false }
+          },
+          x: {
+            ticks: { font: { size: xSz || 15, family: 'Figtree,Arial,sans-serif' }, color: '#3d5278', maxRotation: 0, minRotation: 0 },
+            grid: { display: false }, border: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TT, {
+            callbacks: {
+              title: function(i) { return '20' + i[0].label.slice(1); },
+              label: function(c) {
+                var r = c.dataset._rawAvg[c.dataIndex], n = c.dataset._counts[c.dataIndex];
+                return [r !== null ? 'Carrier Delay: ' + r.toFixed(2) + ' min' : 'No data', n ? 'Flights: ' + n.toLocaleString() : ''].filter(Boolean);
+              }
+            }
+          })
+        }
+      };
+    }
+
+    function barOpts(yMax, onClickFn) {
+      return {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+        scales: {
+          y: {
+            min: 0, max: yMax,
+            ticks: { font: { size: 15, family: 'Figtree,Arial,sans-serif' }, color: '#3d5278', stepSize: 5 },
+            grid: { color: 'rgba(192,205,230,0.4)', lineWidth: 0.5 }, border: { display: false },
+            title: { display: true, text: 'Avg Carrier Delay (min)', font: { size: 15 }, color: '#3d5278' }
+          },
+          x: {
+            ticks: { font: { size: 15, family: 'Figtree,Arial,sans-serif' }, color: '#3d5278', maxRotation: 0 },
+            grid: { display: false }, border: { display: false }
+          }
+        },
+        onClick: onClickFn || null,
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TT, {
+            callbacks: {
+              title: function(i) { return i[0].label; },
+              label: function(c) {
+                var r = c.dataset._rawAvgs[c.dataIndex], n = c.dataset._counts[c.dataIndex];
+                return [
+                  'Avg Carrier Delay: ' + r.toFixed(2) + ' min',
+                  'Total Flights: ' + n.toLocaleString(),
+                  n ? '' : '',
+                  c.dataset._clickable ? 'Click to see aircraft classes \u2192' : ''
+                ].filter(Boolean);
+              }
+            }
+          })
+        }
+      };
+    }
+
+    /* ══ External axis positioning (all-line view only) ══ */
+    function posAxis(railId, chartInst, ticks, yMax) {
+      requestAnimationFrame(function() {
+        var rail = document.getElementById(railId);
+        if (!rail || !chartInst) { return; }
+        while (rail.firstChild) { rail.removeChild(rail.firstChild); }
+        var area = chartInst.chartArea;
+        var cR = chartInst.canvas.getBoundingClientRect();
+        var rR = rail.getBoundingClientRect();
+        var yOff = cR.top - rR.top, plotH = area.bottom - area.top;
+        ticks.forEach(function(t) {
+          var el = document.createElement('span');
+          el.className = 'tick-label';
+          el.style.top = Math.round(yOff + area.top + (1 - t / yMax) * plotH) + 'px';
+          el.textContent = t;
+          rail.appendChild(el);
+        });
+      });
+    }
+
+    /* ══ State ══ */
+    var chartType     = 'column';   /* 'column' | 'line' */
+    var selectedCarr  = null;       /* null = all-airlines view */
+
+    /* ══ Stored chart instances ══ */
+    var allColChart   = null;
+    var allLineCharts = [];         /* [Chart, ...] — first is used for axis */
+    var drillCharts   = [];         /* cleared on each drill */
+
+    /* Measured heights (set after layout) */
+    var AREA_H = 250;
+
+    /* ══ BUILD: all-airlines column ══ */
+    function buildAllColumn() {
+      var container = document.getElementById('allColumnView');
+      container.style.height = (AREA_H - 4) + 'px';
+
+      var cv = document.createElement('canvas');
+      container.appendChild(cv);
+
+      var totals = CARRIERS.map(function(c) { return weightedAvg(carrierYearData[c.name]); });
+
+      allColChart = new Chart(cv, {
+        type: 'bar',
+        data: {
+          labels: CARRIERS.map(function(c) { return c.short; }),
+          datasets: [{
+            data:         totals.map(function(t) { return t.avg; }),
+            _rawAvgs:     totals.map(function(t) { return t.avg; }),
+            _counts:      totals.map(function(t) { return t.count; }),
+            _clickable:   true,
+            backgroundColor: CARRIERS.map(function(c) { return c.color + 'cc'; }),
+            borderColor:  CARRIERS.map(function(c) { return c.color; }),
+            borderWidth: 1.5, borderRadius: 5, borderSkipped: false
+          }]
+        },
+        options: barOpts(C_YMAX, function(evt, elements) {
+          if (elements.length > 0) {
+            selectedCarr = CARRIERS[elements[0].index];
+            buildDrillCharts();
+            showView();
+          }
+        })
+      });
+    }
+
+    /* ══ BUILD: all-airlines line ══ */
+    function buildAllLine() {
+      var container = document.getElementById('allLineView');
+      var canvasH   = Math.max(120, AREA_H - 26);
+      var scrollW   = document.getElementById('panelsScroll').clientWidth || container.clientWidth || 900;
+      var gaps      = (CARRIERS.length - 1) * 6;
+      var panelW    = Math.max(90, Math.floor((scrollW - gaps - 8) / CARRIERS.length));
+
+      CARRIERS.forEach(function(carrier, i) {
+        var grp = document.createElement('div');
+        grp.className = 'carrier-panel';
+        grp.title     = 'Click to see ' + carrier.name + ' by aircraft class';
+        grp.style.width = panelW + 'px';
+        grp.style.maxWidth = panelW + 'px';
+
+        var hdr = document.createElement('div');
+        hdr.className = 'panel-header';
+        hdr.textContent = carrier.short;
+        grp.appendChild(hdr);
+
+        var wrap = document.createElement('div');
+        wrap.className = 'chart-wrap';
+        wrap.style.width = panelW + 'px';
+
+        var cv = document.createElement('canvas');
+        cv.width = panelW; cv.height = canvasH;
+        wrap.appendChild(cv);
+        grp.appendChild(wrap);
+        container.appendChild(grp);
+
+        var d    = carrierYearData[carrier.name];
+        var avgs = YEARS.map(function(y) { return d[y] ? d[y].avg   : null; });
+        var cnts = YEARS.map(function(y) { return d[y] ? d[y].count : 0;    });
+
+        var chart = new Chart(cv, {
+          type: 'line',
+          data: { labels: YR_LABELS, datasets: [makeDataset(avgs, cnts, carrier.color, C_YMAX)] },
+          options: lineOpts(C_YMAX, 8, false)
+        });
+        allLineCharts.push(chart);
+
+        /* click → drill in */
+        (function(c) {
+          grp.addEventListener('click', function() {
+            selectedCarr = c;
+            buildDrillCharts();
+            showView();
+          });
+        }(carrier));
+      });
+    }
+
+    /* ══ BUILD: drill-down charts (built on demand, destroyed before rebuild) ══ */
+    function clearDrillCharts() {
+      drillCharts.forEach(function(c) { c.destroy(); });
+      drillCharts = [];
+      var dc = document.getElementById('drillColumnView');
+      var dl = document.getElementById('drillLineView');
+      while (dc.firstChild) { dc.removeChild(dc.firstChild); }
+      while (dl.firstChild) { dl.removeChild(dl.firstChild); }
+    }
+
+    function buildDrillCharts() {
+      if (!selectedCarr) { return; }
+      clearDrillCharts();
+      buildDrillColumn();
+      buildDrillLine();
+    }
+
+    function buildDrillColumn() {
+      var container = document.getElementById('drillColumnView');
+      container.style.height = (AREA_H - 4) + 'px';
+
+      var cv  = document.createElement('canvas');
+      container.appendChild(cv);
+
+      var clsData    = carrierClassYearData[selectedCarr.name];
+      var classNames = Object.keys(clsData);
+      var totals     = classNames.map(function(cls) { return weightedAvg(clsData[cls]); });
+      var color      = selectedCarr.color;
+
+      drillCharts.push(new Chart(cv, {
+        type: 'bar',
+        data: {
+          labels: classNames.map(function(cls) { return CLASS_SHORTS[cls] || cls; }),
+          datasets: [{
+            data:     totals.map(function(t) { return t.avg; }),
+            _rawAvgs: totals.map(function(t) { return t.avg; }),
+            _counts:  totals.map(function(t) { return t.count; }),
+            backgroundColor: classNames.map(function() { return color + 'cc'; }),
+            borderColor:     classNames.map(function() { return color; }),
+            borderWidth: 1.5, borderRadius: 5, borderSkipped: false
+          }]
+        },
+        options: barOpts(CL_YMAX, null)
+      }));
+    }
+
+    function buildDrillLine() {
+      var container  = document.getElementById('drillLineView');
+      var clsData    = carrierClassYearData[selectedCarr.name];
+      var classNames = Object.keys(clsData);
+      var canvasH    = Math.max(120, AREA_H - 26);
+      var scrollW    = document.getElementById('panelsScroll').clientWidth;
+      var gaps       = (classNames.length - 1) * 8;
+      var panelW     = Math.max(140, Math.floor((scrollW - gaps - 10) / classNames.length));
+      var color      = selectedCarr.color;
+
+      classNames.forEach(function(cls, ci) {
+        var panel = document.createElement('div');
+        panel.className = 'drill-class-panel';
+
+        var hdr = document.createElement('div');
+        hdr.className    = 'panel-header';
+        hdr.textContent  = CLASS_SHORTS[cls] || cls;
+        hdr.style.color  = color;
+        panel.appendChild(hdr);
+
+        var wrap = document.createElement('div');
+        wrap.className = 'chart-wrap';
+
+        var cv = document.createElement('canvas');
+        cv.width = panelW; cv.height = canvasH;
+        wrap.appendChild(cv);
+        panel.appendChild(wrap);
+        container.appendChild(panel);
+
+        var yd   = clsData[cls];
+        var avgs = YEARS.map(function(y) { return yd && yd[y] ? yd[y].avg   : null; });
+        var cnts = YEARS.map(function(y) { return yd && yd[y] ? yd[y].count : 0;    });
+
+        var chart = new Chart(cv, {
+          type: 'line',
+          data: { labels: YR_LABELS, datasets: [makeDataset(avgs, cnts, color, CL_YMAX)] },
+          options: lineOpts(CL_YMAX, 9, ci === 0)
+        });
+        drillCharts.push(chart);
+      });
+    }
+
+    /* ══ Show the correct view based on state ══ */
+    function showView() {
+      /* hide all */
+      document.getElementById('allColumnView').style.display  = 'none';
+      document.getElementById('allLineView').style.display    = 'none';
+      document.getElementById('drillColumnView').style.display = 'none';
+      document.getElementById('drillLineView').style.display  = 'none';
+      document.getElementById('yAxisRail').style.display      = 'none';
+
+      var backBtn   = document.getElementById('backBtn');
+      var drillLbl  = document.getElementById('drillLabel');
+      var axisHint  = document.getElementById('axisHint');
+      var typeBtn   = document.getElementById('typeToggleBtn');
+      var isDrill   = (selectedCarr !== null);
+
+      /* back button & drill label */
+      backBtn.style.display  = isDrill ? 'inline-block' : 'none';
+      drillLbl.style.display = isDrill ? 'block'        : 'none';
+      if (isDrill) {
+        drillLbl.innerHTML = selectedCarr.name +
+          '<span class="drill-sub">\u2014 by aircraft class</span>';
+      }
+
+      if (!isDrill && chartType === 'column') {
+        document.getElementById('allColumnView').style.display = 'block';
+        typeBtn.textContent = '\u223c Line Chart';
+        typeBtn.classList.remove('active');
+        axisHint.textContent = '4-yr weighted avg \u2014 click any bar to drill in';
+
+      } else if (!isDrill && chartType === 'line') {
+        document.getElementById('allLineView').style.display = 'flex';
+        document.getElementById('yAxisRail').style.display   = 'block';
+        typeBtn.textContent = '\u25ae Column Chart';
+        typeBtn.classList.add('active');
+        axisHint.textContent = 'Avg carrier delay (min) per year \u2014 click any panel to drill in';
+        posAxis('yAxisRail', allLineCharts[0], C_TICKS, C_YMAX);
+
+      } else if (isDrill && chartType === 'column') {
+        document.getElementById('drillColumnView').style.display = 'block';
+        typeBtn.textContent = '\u223c Line Chart';
+        typeBtn.classList.remove('active');
+        axisHint.textContent = '4-yr weighted avg \u2014 by aircraft class';
+
+      } else if (isDrill && chartType === 'line') {
+        document.getElementById('drillLineView').style.display = 'flex';
+        typeBtn.textContent = '\u25ae Column Chart';
+        typeBtn.classList.add('active');
+        axisHint.textContent = 'Avg carrier delay (min) per year \u2014 by aircraft class';
+      }
+    }
+
+    /* ══ Toggle: line ↔ column ══ */
+    document.getElementById('typeToggleBtn').addEventListener('click', function() {
+      chartType = (chartType === 'column') ? 'line' : 'column';
+      showView();
+    });
+
+    /* ══ Back button ══ */
+    document.getElementById('backBtn').addEventListener('click', function() {
+      selectedCarr = null;
+      showView();
+    });
+
+    /* ══ Init ══ */
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        AREA_H = Math.max(160, document.querySelector('.viz-chart-area').clientHeight);
+        buildAllColumn();
+        buildAllLine();
+        showView();  /* default: all-airlines column */
+      });
+    });
+  </script>
+</body>
+</html>

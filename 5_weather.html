@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EWR Lauren Section</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Figtree", Arial, Helvetica, sans-serif;
+  }
+
+  body {
+    --navy: #122f5e;
+    --red: #b22543;
+    --white: #f0f2f4;
+    --soft-blue: #dde4f0;
+    --soft-red: #f5dde2;
+    --ink: #0d1f3c;
+    --muted: #3d5278;
+    --track: #cfd6e1;
+    background: linear-gradient(135deg, #dde4f0 0%, #f0f2f4 45%, #f5dde2 100%);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 28px;
+  }
+
+  .slide {
+    width: 100%;
+    max-width: 1380px;
+    min-height: 92vh;
+    margin: 0 auto;
+    background: linear-gradient(180deg, var(--white) 0%, #e8ecf2 100%);
+    border: 2px solid #c0cde6;
+    border-top: 10px solid var(--red);
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(18, 47, 94, 0.12);
+    padding: 34px 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    gap: 18px;
+  }
+
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(178,37,67,0.05), transparent 28%),
+      radial-gradient(circle at 80% 80%, rgba(18,47,94,0.06), transparent 32%);
+    pointer-events: none;
+  }
+
+  h1 {
+  font-size: 2rem;
+  color: var(--navy);
+  font-weight: 800;
+  line-height: 1.08;
+  text-align: left;
+  margin: 0;
+}
+
+  .panel {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    background: rgba(255,255,255,0.58);
+    border: 1px solid #cad5e8;
+    border-radius: 20px;
+    padding: 14px 14px 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 0 4px 8px 4px;
+  }
+  .title-wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+  }
+  .panel-title {
+    font-size: 1.14rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.25;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .toggle {
+    display: inline-flex;
+    background: #e7ecf3;
+    border: 1px solid #c8d2e1;
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .toggle button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .toggle button.active {
+    background: var(--navy);
+    color: white;
+    box-shadow: 0 1px 2px rgba(18, 47, 94, 0.12);
+  }
+
+  .subnote {
+    color: var(--muted);
+    font-size: 0.94rem;
+    margin: 0 0 8px 4px;
+    line-height: 1.35;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+    padding: 6px 6px 2px 6px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 230px 1fr 136px;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .bar-label {
+    font-size: 1.08rem;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .bar-track {
+    height: 66px;
+    background: var(--track);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #c4cfdf;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 18px;
+    color: white;
+    font-weight: 700;
+    font-size: 1.08rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: width 240ms ease;
+  }
+
+  .internal { background: var(--navy); }
+  .external { background: var(--red); }
+
+  .bar-value {
+    text-align: right;
+    color: var(--muted);
+    font-size: 1.02rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: opacity 160ms ease;
+  }
+
+  .security-inline {
+    position: absolute;
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink);
+    font-size: 1.02rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: opacity 160ms ease;
+  }
+
+  @media (max-width: 1100px) {
+    .slide {
+      min-height: auto;
+    }
+
+    .top-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .bar-row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .bar-value {
+      text-align: left;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="slide">
+    <div class="title-wrap">
+      <div>
+    <h1>While weather is outside Newark’s control, it accounts for only a small share of total delays</h1>
+  </div>
+    </div>
+    <div class="panel">
+      <div class="top-row">
+        <div class="panel-title">Share of total delay minutes by cause</div>
+        <div class="toggle" aria-label="Toggle between full period and winter view">
+          <button id="allBtn" class="active" type="button">All months</button>
+          <button id="winterBtn" type="button">Winter only</button>
+        </div>
+      </div>
+      <div class="subnote" id="subnote">Full period</div>
+
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Late aircraft arrival</div>
+          <div class="bar-track">
+            <div class="bar-fill internal" id="lateBar">36.0%</div>
+          </div>
+          <div class="bar-value" id="lateVal">3,740K Min.</div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-label">Carrier</div>
+          <div class="bar-track">
+            <div class="bar-fill external" id="carrierBar">28.1%</div>
+          </div>
+          <div class="bar-value" id="carrierVal">2,920K Min.</div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-label">NAS</div>
+          <div class="bar-track">
+            <div class="bar-fill internal" id="nasBar">20.7%</div>
+          </div>
+          <div class="bar-value" id="nasVal">2,150K Min.</div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-label">Weather</div>
+          <div class="bar-track">
+            <div class="bar-fill external" id="weatherBar">4.15%</div>
+          </div>
+          <div class="bar-value" id="weatherVal">431K Min.</div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-label">Security</div>
+          <div class="bar-track">
+            <div class="bar-fill internal" id="securityBar"></div>
+            <div class="security-inline" id="securityPct">0.12%</div>
+          </div>
+          <div class="bar-value" id="securityVal">12K Min.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const datasets = {
+      all: {
+        subnote: "Full period",
+        rows: {
+          late:    { pct: 36.0,  minutes: "3,740K Min.", group: "internal" },
+          carrier: { pct: 28.1,  minutes: "2,920K Min.", group: "internal" },
+          nas:     { pct: 20.7,  minutes: "2,150K Min.", group: "internal" },
+          weather: { pct: 4.15,  minutes: "431K Min.",   group: "external" },
+          security:{ pct: 0.12,  minutes: "12K Min.",    group: "internal" }
+        }
+      },
+      winter: {
+        subnote: "Winter window: Nov 15 – Mar 15",
+        rows: {
+          late:    { pct: 40.76, minutes: "1,021K Min.", group: "internal" },
+          carrier: { pct: 33.17, minutes: "831K Min.",   group: "internal" },
+          nas:     { pct: 23.25, minutes: "582K Min.",   group: "internal" },
+          weather: { pct: 2.58,  minutes: "64.5K Min.",  group: "external" },
+          security:{ pct: 0.21,  minutes: "5.2K Min.",   group: "internal" }
+        }
+      }
+    };
+
+    function formatPct(pct) {
+      if (pct < 10) return pct.toFixed(2) + "%";
+      return pct.toFixed(1) + "%";
+    }
+
+    function scaledWidth(pct, maxPct) {
+      return Math.max((pct / maxPct) * 100, 1);
+    }
+
+    function applyDataset(key) {
+      const ds = datasets[key];
+      document.getElementById("subnote").textContent = ds.subnote;
+      const maxPct = Math.max(...Object.values(ds.rows).map(d => d.pct));
+
+      const mapping = [
+        ["late", "lateBar", "lateVal"],
+        ["carrier", "carrierBar", "carrierVal"],
+        ["nas", "nasBar", "nasVal"],
+        ["weather", "weatherBar", "weatherVal"],
+        ["security", "securityBar", "securityVal"]
+      ];
+
+      mapping.forEach(([rowKey, barId, valId]) => {
+        const item = ds.rows[rowKey];
+        const bar = document.getElementById(barId);
+        const val = document.getElementById(valId);
+
+        bar.style.width = scaledWidth(item.pct, maxPct) + "%";
+        if (rowKey === "security") {
+          document.getElementById("securityPct").textContent = formatPct(item.pct);
+        } else {
+          bar.textContent = formatPct(item.pct);
+          if (item.pct < 6) {
+            bar.style.minWidth = "92px";
+          } else {
+            bar.style.minWidth = "";
+          }
+        }
+        val.textContent = item.minutes;
+
+        bar.classList.remove("internal", "external");
+        bar.classList.add(item.group);
+      });
+
+      document.getElementById("allBtn").classList.toggle("active", key === "all");
+      document.getElementById("winterBtn").classList.toggle("active", key === "winter");
+    }
+
+    document.getElementById("allBtn").addEventListener("click", () => applyDataset("all"));
+    document.getElementById("winterBtn").addEventListener("click", () => applyDataset("winter"));
+
+    applyDataset("all");
+  </script>
+</body>
+</html>
